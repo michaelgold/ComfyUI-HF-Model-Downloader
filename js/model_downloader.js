@@ -191,7 +191,7 @@ app.registerExtension({
     // Load model configurations
     async function loadModels() {
       try {
-        const response = await api.fetchApi("/api/hal-fun-downloader/config");
+        const response = await api.fetchApi("/hal-fun-downloader/config");
         if (!response.ok) {
           throw new Error(
             `Config API error: ${response.status} ${response.statusText}`
@@ -200,9 +200,7 @@ app.registerExtension({
         const config = await response.json();
         console.log("Loaded config:", config);
 
-        const activeResponse = await api.fetchApi(
-          "/api/hal-fun-downloader/active"
-        );
+        const activeResponse = await api.fetchApi("/hal-fun-downloader/active");
         if (!activeResponse.ok) {
           throw new Error(
             `Active config API error: ${activeResponse.status} ${activeResponse.statusText}`
@@ -256,7 +254,7 @@ app.registerExtension({
                   activeConfig.enabled_models.filter((m) => m !== modelName);
               }
               const updateResponse = await api.fetchApi(
-                "/api/hal-fun-downloader/active",
+                "/hal-fun-downloader/active",
                 {
                   method: "POST",
                   body: JSON.stringify(activeConfig),
@@ -283,7 +281,7 @@ app.registerExtension({
 
             try {
               const response = await api.fetchApi(
-                "/api/hal-fun-downloader/download",
+                "/hal-fun-downloader/download",
                 {
                   method: "POST",
                   body: JSON.stringify({ model_name: modelName }),
