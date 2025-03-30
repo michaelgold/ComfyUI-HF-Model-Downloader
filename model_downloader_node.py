@@ -7,6 +7,8 @@ import asyncio
 from pathlib import Path
 from aiohttp import web
 import logging
+from server import PromptServer
+from execution import PromptExecutor
 
 # Set up logging with a more visible format
 logging.basicConfig(
@@ -65,6 +67,11 @@ class ModelDownloader:
         subfolder = model_config['subfolder']
         filename = model_config['filename']
         local_path = model_config['local_path']
+        base_model_path = model_config.get('base_model_path', os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'models'))
+        
+        # Prepend base_model_path to local_path if it's not an absolute path
+        if not os.path.isabs(local_path):
+            local_path = os.path.join(base_model_path, local_path)
         
         if os.path.exists(local_path):
             return f"File already exists at {local_path}"
@@ -72,7 +79,9 @@ class ModelDownloader:
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         
         try:
-            hf_hub_download(
+            # Use asyncio.to_thread to run the blocking hf_hub_download in a separate thread
+            await asyncio.to_thread(
+                hf_hub_download,
                 repo_id=repo_id,
                 subfolder=subfolder,
                 filename=filename,
@@ -114,10 +123,59 @@ class ModelDownloader:
             
             for model in config:
                 if model_name in model.get("local_path", ""):
-                    asyncio.create_task(self.download_model(model))
-                    return (f"Started download for {model_name}",)
+                    try:
+                        # Create event loop if it doesn't exist
+                        try:
+                            loop = asyncio.get_event_loop()
+                        except RuntimeError:
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                        
+                        # Run the download
+                        status = loop.run_until_complete(self.download_model(model))
+                        return (status,)
+                    except Exception as e:
+                        error_msg = f"Error downloading {model_name}: {str(e)}"
+                        logger.error(error_msg, exc_info=True)
+                        return (error_msg,)
             
             return (f"No matching models found for {model_name}",)
+
+class DownloadModelNode:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "model_config": ("MODEL_CONFIG",),
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("status",)
+    FUNCTION = "execute"
+    CATEGORY = "model_downloader"
+    OUTPUT_NODE = True
+
+    def execute(self, model_config):
+        try:
+            logger.info(f"Starting download for model config: {model_config}")
+            downloader = get_model_downloader()
+            
+            # Create event loop if it doesn't exist
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # Run the download
+            status = loop.run_until_complete(downloader.download_model(model_config))
+            logger.info(f"Download completed with status: {status}")
+            return (status,)
+        except Exception as e:
+            error_msg = f"Error in download node: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            return (error_msg,)
 
 # API route handlers
 async def get_config(request):
@@ -153,43 +211,95 @@ async def download_model_handler(request):
     downloader = get_model_downloader()
     try:
         data = await request.json()
+        logger.info(f"Received data: {data}")
         model_name = data.get("model_name")
         if not model_name:
+            logger.error("No model_name provided in request")
             return web.json_response({"status": "Error: No model name provided"}, status=400)
+        
+        if not downloader.model_config_path.exists():
+            logger.error(f"Model config file not found at {downloader.model_config_path}")
+            return web.json_response({"status": f"Error: Model config file not found at {downloader.model_config_path}"}, status=500)
         
         with open(downloader.model_config_path, 'r') as f:
             config = json.load(f)
+            logger.info(f"Loaded config: {config}")
         
+        model_found = False
         for model in config:
             if model_name in model.get("local_path", ""):
-                status = await downloader.download_model(model)
-                return web.json_response({"status": status})
+                model_found = True
+                logger.info(f"Found matching model: {model}")
+                
+                try:
+                    # Run the download directly since we're already in an async context
+                    status = await downloader.download_model(model)
+                    logger.info(f"Download completed with status: {status}")
+                    return web.json_response({"status": status})
+                except Exception as e:
+                    error_msg = f"Error downloading {model_name}: {str(e)}"
+                    logger.error(error_msg, exc_info=True)
+                    return web.json_response({"status": error_msg}, status=500)
         
-        return web.json_response({"status": f"No matching models found for {model_name}"}, status=404)
+        if not model_found:
+            logger.error(f"No matching model found for {model_name}")
+            return web.json_response({"status": f"No matching models found for {model_name}"}, status=404)
+            
     except Exception as e:
-        logger.error(f"Error in download endpoint: {str(e)}")
+        logger.error(f"Error in download endpoint: {str(e)}", exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 
 # Register routes when the module is loaded
 logger.info("=== Initializing hal.fun model downloader ===")
-server = PromptServer.instance
-if server and hasattr(server, 'routes'):
-    logger.info("Found server instance, adding routes")
-    # Register routes without the /api prefix - the server will add it
+
+def register_routes(server):
+    logger.info("Registering routes with server")
     server.routes.get("/hal-fun-downloader/config")(get_config)
     server.routes.get("/hal-fun-downloader/active")(get_active_config)
     server.routes.post("/hal-fun-downloader/active")(update_active_config)
     server.routes.post("/hal-fun-downloader/download")(download_model_handler)
     logger.info("Routes registered successfully")
+
+# Wait for server to be ready
+server = PromptServer.instance
+if server:
+    register_routes(server)
 else:
-    logger.warning("No server instance found, routes not registered")
+    logger.warning("No server instance found, will register routes when server is ready")
+    # Register a callback to be called when the server is ready
+    PromptServer.instance = None
+    def on_server_ready(server):
+        register_routes(server)
+    PromptServer.on_server_ready = on_server_ready
 
 # A dictionary that contains all nodes you want to export with their names
 NODE_CLASS_MAPPINGS = {
-    "ModelDownloader": ModelDownloader
+    "ModelDownloader": ModelDownloader,
+    "DownloadModel": DownloadModelNode
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "ModelDownloader": "Hal.fun Model Downloader"
-} 
+    "ModelDownloader": "Hal.fun Model Downloader",
+    "DownloadModel": "Download Model"
+}
+
+# Register the download function as a node
+def register_download_node():
+    logger.info("Registering download node")
+    server = PromptServer.instance
+    if server and hasattr(server, 'nodes'):
+        server.nodes.register_node("download_model", DownloadModelNode)
+        logger.info("Download node registered successfully")
+    else:
+        logger.warning("Could not register download node - server or nodes not ready")
+
+# Wait for server to be ready and register the download node
+server = PromptServer.instance
+if server:
+    register_download_node()
+else:
+    logger.warning("No server instance found, will register download node when server is ready")
+    def on_server_ready(server):
+        register_download_node()
+    PromptServer.on_server_ready = on_server_ready 
