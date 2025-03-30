@@ -342,23 +342,21 @@ app.registerExtension({
           const modelItem = document.createElement("li");
           modelItem.className = "model-item";
           modelItem.innerHTML = `
-                        <label>
-                            <input type="checkbox" data-model-name="${modelName}" ${
+                <label>
+                    <input type="checkbox" data-model-name="${modelName}" ${
             isEnabled ? "checked" : ""
           }>
-                            <span class="status-icon ${
-                              isDownloaded ? "downloaded" : ""
-                            }">
-                                ${isDownloaded ? "✓" : "✗"}
-                            </span>
-                            ${modelName}
-                        </label>
-                        <button class="download-btn" ${
-                          isDownloaded ? "disabled" : ""
-                        }>
-                            ${isDownloaded ? "Downloaded" : "Download"}
-                        </button>
-                    `;
+                    ${
+                      isDownloaded
+                        ? '<span class="status-icon downloaded">✓</span>'
+                        : ""
+                    }
+                    ${modelName}
+                </label>
+                <button class="download-btn" ${isDownloaded ? "disabled" : ""}>
+                    ${isDownloaded ? "Downloaded" : "Download"}
+                </button>
+            `;
 
           const checkbox = modelItem.querySelector("input");
           checkbox.onchange = async () => {
