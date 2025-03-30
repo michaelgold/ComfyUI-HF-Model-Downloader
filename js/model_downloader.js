@@ -38,6 +38,7 @@ style.textContent = `
     font-size: 1.2rem;
     font-weight: 600;
     border-bottom: 1px solid var(--border-color);
+    text-shadow: 4px 4px 4px rgba(0, 0, 0, 0.8);
 }
 
 .model-list {
