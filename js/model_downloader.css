@@ -1,0 +1,120 @@
+.hal-fun-top-menu {
+    box-sizing: border-box;
+    white-space: nowrap;
+    background: var(--content-bg);
+    color: var(--content-fg);
+    display: flex;
+    flex-direction: column;
+    min-width: 300px;
+    max-width: 500px;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    box-shadow: rgb(0 0 0 / 20%) 0px 5px 5px -3px, 
+                rgb(0 0 0 / 14%) 0px 8px 10px 1px, 
+                rgb(0 0 0 / 12%) 0px 3px 14px 2px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.hal-fun-top-menu * {
+    box-sizing: inherit;
+}
+
+.hal-fun-downloader-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.hal-fun-downloader-container h2 {
+    margin: 0;
+    padding: 8px 12px;
+    color: var(--fg-color);
+    font-size: 1.2rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.model-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.model-item {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.model-item:last-child {
+    border-bottom: none;
+}
+
+.model-item:hover {
+    background-color: var(--comfy-input-bg);
+}
+
+.model-item label {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    cursor: pointer;
+    user-select: none;
+    flex-grow: 1;
+    width: 100%;
+    text-align: start;
+    padding: 8px 12px 8px 8px;
+}
+
+.model-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent-color);
+}
+
+.download-btn {
+    background: none;
+    color: var(--fg-color);
+    border: 1px solid var(--border-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 0.9rem;
+    margin-left: 8px;
+}
+
+.download-btn:hover {
+    background-color: var(--comfy-input-bg);
+}
+
+.download-status {
+    padding: 8px 12px;
+    border-top: 1px solid var(--border-color);
+    color: var(--fg-color);
+    font-size: 0.9rem;
+    font-style: italic;
+    text-align: center;
+}
+
+/* Animation */
+.comfyui-popup.left {
+    transform-origin: top right;
+    animation: popup-left 0.2s ease-out;
+}
+
+@keyframes popup-left {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+} 
