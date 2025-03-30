@@ -210,9 +210,18 @@ async def get_active_config(request):
     for model in config:
         model_name = os.path.basename(model.get("local_path", ""))
         if model_name:
+            # Get the full path for the model
+            local_path = model.get("local_path", "")
+            base_model_path = model.get('base_model_path', os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'models'))
+            
+            # Prepend base_model_path to local_path if it's not an absolute path
+            if not os.path.isabs(local_path):
+                local_path = os.path.join(base_model_path, local_path)
+            
+            logger.info(f"Checking model {model_name} at path: {local_path}")
             model_status[model_name] = {
-                "downloaded": os.path.exists(model["local_path"]),
-                "path": model["local_path"]
+                "downloaded": os.path.exists(local_path),
+                "path": local_path
             }
     
     active_config["model_status"] = model_status
