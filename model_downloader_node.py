@@ -111,6 +111,11 @@ class ModelDownloader:
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         
         try:
+            # Get the token if we're logged in
+            token = self.get_token()
+            if not token:
+                return f"Error: Not logged in. Please log in first to download protected models."
+            
             # Use asyncio.to_thread to run the blocking hf_hub_download in a separate thread
             logger.info(f"Starting download of {filename} from {repo_id}")
             await asyncio.to_thread(
@@ -118,7 +123,8 @@ class ModelDownloader:
                 repo_id=repo_id,
                 subfolder=subfolder,
                 filename=filename,
-                local_dir=os.path.dirname(local_path)
+                local_dir=os.path.dirname(local_path),
+                token=token
             )
             
             downloaded_path = os.path.join(os.path.dirname(local_path), subfolder, filename)

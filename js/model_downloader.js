@@ -11,8 +11,8 @@ style.textContent = `
     color: var(--content-fg);
     display: flex;
     flex-direction: column;
-    min-width: 300px;
-    max-width: 500px;
+    min-width: 400px;
+    max-width: 800px;
     border: 1px solid var(--border-color);
     border-radius: 0.5rem;
     box-shadow: rgb(0 0 0 / 20%) 0px 5px 5px -3px, 
@@ -501,9 +501,11 @@ app.registerExtension({
     }
 
     // Load models when the extension is initialized and when the panel is opened
+    checkLoginStatus(); // Check login status on initialization
     loadModels();
     button.addEventListener("click", () => {
       if (panel.style.display === "none") {
+        checkLoginStatus();
         loadModels(); // Refresh the list when opening the panel
       }
     });
@@ -544,6 +546,32 @@ app.registerExtension({
       const token = tokenInput.value.trim();
       const status = panel.querySelector(".download-status");
 
+      // If already logged in, handle logout
+      if (loginBtn.classList.contains("logged-in")) {
+        try {
+          status.textContent = "Logging out...";
+          const response = await api.fetchApi("/hal-fun-downloader/logout", {
+            method: "POST",
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || "Logout failed");
+          }
+
+          updateLoginUI(false);
+          status.textContent = "Successfully logged out";
+
+          // Refresh the model list to update download status
+          await loadModels();
+        } catch (error) {
+          console.error("Logout error:", error);
+          status.textContent = `Logout error: ${error.message}`;
+        }
+        return;
+      }
+
+      // Handle login
       if (!token) {
         status.textContent =
           "Please create a new read token at https://huggingface.co/settings/tokens/new?tokenType=read";
@@ -572,13 +600,5 @@ app.registerExtension({
         status.textContent = `Login error: ${error.message}`;
       }
     };
-
-    // Check login status when the panel is opened
-    button.addEventListener("click", () => {
-      if (panel.style.display === "none") {
-        checkLoginStatus();
-        loadModels();
-      }
-    });
   },
 });
