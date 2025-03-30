@@ -193,13 +193,13 @@ style.textContent = `
 
 .login-section .token-link {
     color: var(--accent-color);
-    text-decoration: none;
+    text-decoration: underline;
     font-size: 0.8rem;
     text-align: center;
 }
 
 .login-section .token-link:hover {
-    text-decoration: underline;
+    opacity: 0.8;
 }
 
 .login-section button {
@@ -249,7 +249,7 @@ app.registerExtension({
     panel.style.right = "10px";
     panel.innerHTML = `
             <div class="hal-fun-downloader-container">
-                <h2>Hal.fun Model Downloader</h2>
+                <h2>🦾 Hal.fun Model Downloader</h2>
                 <div class="login-section">
                     <div class="input-group">
                         <input type="password" class="hf-token-input" placeholder="Hugging Face Token">
