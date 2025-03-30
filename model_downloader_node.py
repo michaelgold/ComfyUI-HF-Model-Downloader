@@ -1,6 +1,6 @@
 import json
 import os
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, login
 from server import PromptServer
 import aiohttp
 import asyncio
@@ -35,6 +35,7 @@ class ModelDownloader:
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.active_config_path = self.config_dir / "active_config.json"
         self.model_config_path = Path(__file__).parent / "model_config.json"
+        self.token_path = self.config_dir / "hf_token.txt"
         
         # Load or create active configuration
         if self.active_config_path.exists():
@@ -47,6 +48,37 @@ class ModelDownloader:
     def _save_active_config(self):
         with open(self.active_config_path, 'w') as f:
             json.dump(self.active_config, f, indent=2)
+
+    def is_logged_in(self):
+        return self.token_path.exists()
+
+    def save_token(self, token):
+        try:
+            with open(self.token_path, 'w') as f:
+                f.write(token)
+            return True
+        except Exception as e:
+            logger.error(f"Error saving token: {e}")
+            return False
+
+    def get_token(self):
+        try:
+            if self.token_path.exists():
+                with open(self.token_path, 'r') as f:
+                    return f.read().strip()
+            return None
+        except Exception as e:
+            logger.error(f"Error reading token: {e}")
+            return None
+
+    def logout(self):
+        try:
+            if self.token_path.exists():
+                self.token_path.unlink()
+            return True
+        except Exception as e:
+            logger.error(f"Error logging out: {e}")
+            return False
 
     @classmethod
     def INPUT_TYPES(s):
@@ -282,6 +314,54 @@ async def download_model_handler(request):
         logger.error(f"Error in download endpoint: {str(e)}", exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 
+# Add new login endpoint
+async def login_handler(request):
+    logger.info("Login endpoint called")
+    try:
+        data = await request.json()
+        token = data.get("token")
+        
+        if not token:
+            return web.json_response({"error": "No token provided. Please create a new read token at https://huggingface.co/settings/tokens/new?tokenType=read"}, status=400)
+
+        # Try to login with the token
+        try:
+            login(token=token)
+            downloader = get_model_downloader()
+            if downloader.save_token(token):
+                return web.json_response({"status": "success", "token": token})
+            else:
+                return web.json_response({"error": "Failed to save token"}, status=500)
+        except Exception as e:
+            logger.error(f"Login error: {e}")
+            return web.json_response({"error": str(e)}, status=401)
+
+    except Exception as e:
+        logger.error(f"Login handler error: {e}")
+        return web.json_response({"error": str(e)}, status=500)
+
+async def logout_handler(request):
+    logger.info("Logout endpoint called")
+    try:
+        downloader = get_model_downloader()
+        if downloader.logout():
+            return web.json_response({"status": "success"})
+        else:
+            return web.json_response({"error": "Failed to logout"}, status=500)
+    except Exception as e:
+        logger.error(f"Logout handler error: {e}")
+        return web.json_response({"error": str(e)}, status=500)
+
+async def get_login_status(request):
+    logger.info("Login status endpoint called")
+    try:
+        downloader = get_model_downloader()
+        is_logged_in = downloader.is_logged_in()
+        return web.json_response({"logged_in": is_logged_in})
+    except Exception as e:
+        logger.error(f"Login status handler error: {e}")
+        return web.json_response({"error": str(e)}, status=500)
+
 # Register routes when the module is loaded
 logger.info("=== Initializing hal.fun model downloader ===")
 
@@ -291,6 +371,9 @@ def register_routes(server):
     server.routes.get("/hal-fun-downloader/active")(get_active_config)
     server.routes.post("/hal-fun-downloader/active")(update_active_config)
     server.routes.post("/hal-fun-downloader/download")(download_model_handler)
+    server.routes.post("/hal-fun-downloader/login")(login_handler)
+    server.routes.post("/hal-fun-downloader/logout")(logout_handler)
+    server.routes.get("/hal-fun-downloader/login-status")(get_login_status)
     logger.info("Routes registered successfully")
 
 # Wait for server to be ready

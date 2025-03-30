@@ -166,6 +166,60 @@ style.textContent = `
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+.login-section {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.login-section .input-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.login-section input {
+    flex-grow: 1;
+    margin-right: 8px;
+    padding: 4px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--comfy-input-bg);
+    color: var(--fg-color);
+}
+
+.login-section .token-link {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.login-section .token-link:hover {
+    text-decoration: underline;
+}
+
+.login-section button {
+    background: none;
+    color: var(--fg-color);
+    border: 1px solid var(--border-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 0.9rem;
+}
+
+.login-section button:hover {
+    background-color: var(--comfy-input-bg);
+}
+
+.login-section button.logged-in {
+    color: var(--success-color);
+}
 `;
 
 document.head.appendChild(style);
@@ -196,6 +250,13 @@ app.registerExtension({
     panel.innerHTML = `
             <div class="hal-fun-downloader-container">
                 <h2>Hal.fun Model Downloader</h2>
+                <div class="login-section">
+                    <div class="input-group">
+                        <input type="password" class="hf-token-input" placeholder="Hugging Face Token">
+                        <button class="login-btn">Login</button>
+                    </div>
+                    <a href="https://huggingface.co/settings/tokens/new?tokenType=read" target="_blank" class="token-link">Get a read token from Hugging Face</a>
+                </div>
                 <div class="model-controls">
                     <button class="select-all-btn">Select All</button>
                     <button class="download-selected-btn">Download Selected</button>
@@ -338,6 +399,7 @@ app.registerExtension({
             activeConfig.enabled_models.includes(modelName);
           const isDownloaded =
             activeConfig.model_status?.[modelName]?.downloaded;
+          const isProtected = model.protected;
 
           const modelItem = document.createElement("li");
           modelItem.className = "model-item";
@@ -349,6 +411,8 @@ app.registerExtension({
                     ${
                       isDownloaded
                         ? '<span class="status-icon downloaded">✓</span>'
+                        : isProtected
+                        ? '<span class="status-icon protected">🔒</span>'
                         : ""
                     }
                     ${modelName}
@@ -390,6 +454,11 @@ app.registerExtension({
           const downloadBtn = modelItem.querySelector(".download-btn");
           downloadBtn.onclick = async () => {
             const status = panel.querySelector(".download-status");
+            if (isProtected) {
+              status.textContent =
+                "This model requires Hugging Face authentication. Please log in first.";
+              return;
+            }
             status.textContent = "Starting download...";
             downloadBtn.disabled = true;
 
@@ -435,6 +504,79 @@ app.registerExtension({
     button.addEventListener("click", () => {
       if (panel.style.display === "none") {
         loadModels(); // Refresh the list when opening the panel
+      }
+    });
+
+    // Add login functionality
+    async function checkLoginStatus() {
+      try {
+        const response = await api.fetchApi("/hal-fun-downloader/login-status");
+        if (!response.ok)
+          throw new Error(`Login status error: ${response.status}`);
+        const data = await response.json();
+        updateLoginUI(data.logged_in);
+      } catch (error) {
+        console.error("Error checking login status:", error);
+      }
+    }
+
+    function updateLoginUI(isLoggedIn) {
+      const loginBtn = panel.querySelector(".login-btn");
+      const tokenInput = panel.querySelector(".hf-token-input");
+
+      if (isLoggedIn) {
+        loginBtn.textContent = "Logged In";
+        loginBtn.classList.add("logged-in");
+        tokenInput.value = "";
+        tokenInput.disabled = true;
+      } else {
+        loginBtn.textContent = "Login";
+        loginBtn.classList.remove("logged-in");
+        tokenInput.disabled = false;
+      }
+    }
+
+    // Add login button handler
+    const loginBtn = panel.querySelector(".login-btn");
+    loginBtn.onclick = async () => {
+      const tokenInput = panel.querySelector(".hf-token-input");
+      const token = tokenInput.value.trim();
+      const status = panel.querySelector(".download-status");
+
+      if (!token) {
+        status.textContent =
+          "Please create a new read token at https://huggingface.co/settings/tokens/new?tokenType=read";
+        return;
+      }
+
+      try {
+        status.textContent = "Logging in...";
+        const response = await api.fetchApi("/hal-fun-downloader/login", {
+          method: "POST",
+          body: JSON.stringify({ token }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Login failed");
+        }
+
+        updateLoginUI(true);
+        status.textContent = "Successfully logged in";
+
+        // Refresh the model list to update download status
+        await loadModels();
+      } catch (error) {
+        console.error("Login error:", error);
+        status.textContent = `Login error: ${error.message}`;
+      }
+    };
+
+    // Check login status when the panel is opened
+    button.addEventListener("click", () => {
+      if (panel.style.display === "none") {
+        checkLoginStatus();
+        loadModels();
       }
     });
   },
