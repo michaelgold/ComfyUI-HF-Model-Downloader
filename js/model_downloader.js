@@ -123,7 +123,50 @@ style.textContent = `
         opacity: 1;
         transform: translateY(0);
     }
-}`;
+}
+
+.model-controls {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.model-controls button {
+    background: none;
+    color: var(--fg-color);
+    border: 1px solid var(--border-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 0.9rem;
+}
+
+.model-controls button:hover {
+    background-color: var(--comfy-input-bg);
+}
+
+.model-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.model-item .status-icon {
+    margin-right: 8px;
+    color: var(--error-color);
+}
+
+.model-item .status-icon.downloaded {
+    color: var(--success-color);
+}
+
+.download-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+`;
 
 document.head.appendChild(style);
 
@@ -153,6 +196,10 @@ app.registerExtension({
     panel.innerHTML = `
             <div class="hal-fun-downloader-container">
                 <h2>Hal.fun Model Downloader</h2>
+                <div class="model-controls">
+                    <button class="select-all-btn">Select All</button>
+                    <button class="download-selected-btn">Download Selected</button>
+                </div>
                 <menu class="model-list"></menu>
                 <div class="download-status"></div>
             </div>
@@ -221,6 +268,64 @@ app.registerExtension({
           return;
         }
 
+        // Add event listeners for control buttons
+        const selectAllBtn = panel.querySelector(".select-all-btn");
+        const downloadSelectedBtn = panel.querySelector(
+          ".download-selected-btn"
+        );
+
+        selectAllBtn.onclick = () => {
+          const checkboxes = modelList.querySelectorAll(
+            'input[type="checkbox"]'
+          );
+          const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+          checkboxes.forEach((cb) => {
+            cb.checked = !allChecked;
+            cb.dispatchEvent(new Event("change"));
+          });
+          selectAllBtn.textContent = allChecked ? "Select All" : "Deselect All";
+        };
+
+        downloadSelectedBtn.onclick = async () => {
+          const selectedModels = Array.from(
+            modelList.querySelectorAll('input[type="checkbox"]:checked')
+          ).map((cb) => cb.dataset.modelName);
+
+          if (selectedModels.length === 0) {
+            const status = panel.querySelector(".download-status");
+            status.textContent = "Please select models to download";
+            return;
+          }
+
+          const status = panel.querySelector(".download-status");
+          status.textContent = "Downloading selected models...";
+          downloadSelectedBtn.disabled = true;
+
+          try {
+            for (const modelName of selectedModels) {
+              if (!activeConfig.model_status[modelName]?.downloaded) {
+                status.textContent = `Downloading ${modelName}...`;
+                const response = await api.fetchApi(
+                  "/hal-fun-downloader/download",
+                  {
+                    method: "POST",
+                    body: JSON.stringify({ model_name: modelName }),
+                  }
+                );
+                if (!response.ok)
+                  throw new Error(`Failed to download ${modelName}`);
+              }
+            }
+            status.textContent = "All selected models downloaded successfully";
+            await loadModels(); // Refresh the list
+          } catch (error) {
+            console.error("Download error:", error);
+            status.textContent = `Error: ${error.message}`;
+          } finally {
+            downloadSelectedBtn.disabled = false;
+          }
+        };
+
         config.forEach((model) => {
           if (!model || !model.local_path) {
             console.warn("Invalid model config:", model);
@@ -231,17 +336,28 @@ app.registerExtension({
           const isEnabled =
             Array.isArray(activeConfig?.enabled_models) &&
             activeConfig.enabled_models.includes(modelName);
+          const isDownloaded =
+            activeConfig.model_status?.[modelName]?.downloaded;
 
           const modelItem = document.createElement("li");
           modelItem.className = "model-item";
           modelItem.innerHTML = `
                         <label>
-                            <input type="checkbox" ${
-                              isEnabled ? "checked" : ""
-                            }>
+                            <input type="checkbox" data-model-name="${modelName}" ${
+            isEnabled ? "checked" : ""
+          }>
+                            <span class="status-icon ${
+                              isDownloaded ? "downloaded" : ""
+                            }">
+                                ${isDownloaded ? "✓" : "✗"}
+                            </span>
                             ${modelName}
                         </label>
-                        <button class="download-btn">Download</button>
+                        <button class="download-btn" ${
+                          isDownloaded ? "disabled" : ""
+                        }>
+                            ${isDownloaded ? "Downloaded" : "Download"}
+                        </button>
                     `;
 
           const checkbox = modelItem.querySelector("input");
@@ -292,6 +408,7 @@ app.registerExtension({
               }
               const result = await response.json();
               status.textContent = result.status;
+              await loadModels(); // Refresh the list
             } catch (error) {
               console.error("Download error:", error);
               status.textContent = `Error: ${error.message}`;

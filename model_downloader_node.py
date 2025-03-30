@@ -80,6 +80,7 @@ class ModelDownloader:
         
         try:
             # Use asyncio.to_thread to run the blocking hf_hub_download in a separate thread
+            logger.info(f"Starting download of {filename} from {repo_id}")
             await asyncio.to_thread(
                 hf_hub_download,
                 repo_id=repo_id,
@@ -192,7 +193,30 @@ async def get_config(request):
 async def get_active_config(request):
     logger.info(f"Active config endpoint called: {request.path}")
     downloader = get_model_downloader()
-    return web.json_response(downloader.active_config)
+    
+    # Get active config and add download status
+    active_config = downloader.active_config.copy()
+    
+    # Check if each enabled model is downloaded
+    if not downloader.model_config_path.exists():
+        logger.error("Model config file not found")
+        return web.json_response({"error": "Model config file not found"}, status=500)
+        
+    with open(downloader.model_config_path, 'r') as f:
+        config = json.load(f)
+    
+    # Add download status for each model
+    model_status = {}
+    for model in config:
+        model_name = os.path.basename(model.get("local_path", ""))
+        if model_name:
+            model_status[model_name] = {
+                "downloaded": os.path.exists(model["local_path"]),
+                "path": model["local_path"]
+            }
+    
+    active_config["model_status"] = model_status
+    return web.json_response(active_config)
 
 async def update_active_config(request):
     logger.info(f"Update active config endpoint called: {request.path}")
