@@ -3,42 +3,42 @@
     "repo_id": "tencent/Hunyuan3D-2",
     "subfolder": "hunyuan3d-dit-v2-0-fast",
     "filename": "model.fp16.safetensors",
-    "local_path": "/app/models/diffusion_models/hy3dgen/hunyuan3d-dit-v2-0-fast-fp16.safetensors"
+    "local_path": "diffusion_models/hy3dgen/hunyuan3d-dit-v2-0-fast-fp16.safetensors"
   },
   {
     "repo_id": "tencent/Hunyuan3D-2mv",
     "subfolder": "hunyuan3d-dit-v2-mv-fast",
     "filename": "model.fp16.safetensors",
-    "local_path": "/app/models/diffusion_models/hy3dgen/hunyuan3d-dit-v2-mv-fast-fp16.safetensors"
+    "local_path": "diffusion_models/hy3dgen/hunyuan3d-dit-v2-mv-fast-fp16.safetensors"
   },
   {
     "repo_id": "Kijai/flux-fp8",
     "subfolder": "",
     "filename": "flux1-dev-fp8.safetensors",
-    "local_path": "/app/models/unet/FLUX1/flux1-dev-fp8.safetensors"
+    "local_path": "unet/FLUX1/flux1-dev-fp8.safetensors"
   },
   {
     "repo_id": "Kijai/flux-fp8",
     "subfolder": "",
     "filename": "flux_shakker_labs_union_pro-fp8_e4m3fn.safetensors",
-    "local_path": "/app/models/controlnet/FLUX1/flux_shakker_labs_union_pro-fp8_e4m3fn.safetensors"
+    "local_path": "controlnet/FLUX1/flux_shakker_labs_union_pro-fp8_e4m3fn.safetensors"
   },
   {
     "repo_id": "comfyanonymous/flux_text_encoders",
     "subfolder": "",
     "filename": "t5xxl_fp8_e4m3fn.safetensors",
-    "local_path": "/app/models/text_encoder/t5/t5xxl_fp8_e4m3fn.safetensors"
+    "local_path": "text_encoder/t5/t5xxl_fp8_e4m3fn.safetensors"
   },
   {
     "repo_id": "comfyanonymous/flux_text_encoders",
     "subfolder": "",
     "filename": "clip_l.safetensors",
-    "local_path": "/app/models/text_encoder/clip_l.safetensors"
+    "local_path": "text_encoder/clip_l.safetensors"
   },
   {
     "repo_id": "black-forest-labs/FLUX.1-dev",
     "subfolder": "",
     "filename": "ae.safetensors",
-    "local_path": "/app/models/vae/FLUX1/ae.safetensors"
+    "local_path": "vae/FLUX1/ae.safetensors"
   }
 ]
