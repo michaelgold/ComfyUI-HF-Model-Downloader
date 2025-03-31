@@ -8,12 +8,13 @@
     min-width: 300px;
     max-width: 500px;
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
-    box-shadow: rgb(0 0 0 / 20%) 0px 5px 5px -3px, 
-                rgb(0 0 0 / 14%) 0px 8px 10px 1px, 
-                rgb(0 0 0 / 12%) 0px 3px 14px 2px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 
+                0 2px 4px -2px rgb(0 0 0 / 0.1);
     max-height: 80vh;
     overflow-y: auto;
+    backdrop-filter: blur(8px);
+    transition: all 0.3s ease;
 }
 
 .hal-fun-top-menu * {
@@ -23,21 +24,26 @@
 .hal-fun-downloader-container {
     display: flex;
     flex-direction: column;
+    gap: 8px;
 }
 
 .hal-fun-downloader-container h2 {
     margin: 0;
-    padding: 8px 12px;
+    padding: 16px 20px;
     color: var(--fg-color);
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     font-weight: 600;
     border-bottom: 1px solid var(--border-color);
+    letter-spacing: -0.025em;
 }
 
 .model-list {
     list-style: none;
     padding: 0;
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .model-item {
@@ -47,8 +53,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
 }
 
 .model-item:last-child {
@@ -57,64 +64,202 @@
 
 .model-item:hover {
     background-color: var(--comfy-input-bg);
+    transform: translateX(4px);
 }
 
 .model-item label {
     display: flex;
     align-items: center;
-    gap: 0.6em;
+    gap: 0.8em;
     cursor: pointer;
     user-select: none;
     flex-grow: 1;
     width: 100%;
     text-align: start;
     padding: 8px 12px 8px 8px;
+    font-size: 0.95rem;
+    color: var(--fg-color);
+    transition: color 0.2s ease;
 }
 
 .model-item input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     accent-color: var(--accent-color);
+    cursor: pointer;
+    border-radius: 4px;
+    border: 2px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.model-item input[type="checkbox"]:checked {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
 }
 
 .download-btn {
-    background: none;
-    color: var(--fg-color);
-    border: 1px solid var(--border-color);
-    padding: 4px 8px;
-    border-radius: 4px;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
     font-size: 0.9rem;
+    font-weight: 500;
     margin-left: 8px;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 .download-btn:hover {
-    background-color: var(--comfy-input-bg);
+    background-color: var(--accent-color);
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.download-btn:active {
+    transform: translateY(0);
 }
 
 .download-status {
-    padding: 8px 12px;
+    padding: 12px 20px;
     border-top: 1px solid var(--border-color);
     color: var(--fg-color);
     font-size: 0.9rem;
-    font-style: italic;
     text-align: center;
+    background-color: var(--comfy-input-bg);
+    border-radius: 0 0 12px 12px;
 }
 
 /* Animation */
 .comfyui-popup.left {
     transform-origin: top right;
-    animation: popup-left 0.2s ease-out;
+    animation: popup-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes popup-left {
     from {
         opacity: 0;
-        transform: translateY(-8px);
+        transform: translateY(-12px);
     }
     to {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+.login-section {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background-color: var(--comfy-input-bg);
+    border-radius: 8px;
+    margin: 8px 16px;
+}
+
+.login-section .input-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.login-section .button-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.login-section input {
+    flex-grow: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--content-bg);
+    color: var(--fg-color);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.login-section input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.1);
+}
+
+.login-section input:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.login-section .token-link {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-size: 0.85rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.login-section .token-link:hover {
+    background-color: rgba(var(--accent-color-rgb), 0.1);
+}
+
+.login-section .token-link.hidden {
+    display: none;
+}
+
+.login-section button {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.login-section button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.login-section button:active {
+    transform: translateY(0);
+}
+
+.login-section button.logged-in {
+    background: var(--success-color);
+}
+
+.login-section button.logout-btn {
+    background: var(--error-color);
+}
+
+.login-section button.logout-btn:hover {
+    opacity: 0.9;
+}
+
+.login-section .user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--content-bg);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--fg-color);
+}
+
+.login-section .user-info.hidden {
+    display: none;
 } 

@@ -339,6 +339,10 @@ app.registerExtension({
                         <button class="login-btn">Login</button>
                     </div>
                     <a href="https://huggingface.co/settings/tokens/new?tokenType=read" target="_blank" class="token-link">Get a read token from Hugging Face</a>
+                    <div class="user-info hidden">
+                        <span class="user-name"></span>
+                        <button class="logout-btn">Logout</button>
+                    </div>
                 </div>
                 <div class="model-controls">
                     <button class="select-all-btn">Select All</button>
@@ -693,16 +697,28 @@ app.registerExtension({
     function updateLoginUI(isLoggedIn) {
       const loginBtn = panel.querySelector(".login-btn");
       const tokenInput = panel.querySelector(".hf-token-input");
+      const tokenLink = panel.querySelector(".token-link");
+      const inputGroup = panel.querySelector(".input-group");
+      const userInfo = panel.querySelector(".user-info");
+      const userName = panel.querySelector(".user-name");
+      const logoutBtn = panel.querySelector(".logout-btn");
 
       if (isLoggedIn) {
         loginBtn.textContent = "Logged In";
         loginBtn.classList.add("logged-in");
         tokenInput.value = "";
         tokenInput.disabled = true;
+        tokenLink.classList.add("hidden");
+        inputGroup.style.display = "none";
+        userInfo.classList.remove("hidden");
+        userName.textContent = "Logged in to Hugging Face";
       } else {
         loginBtn.textContent = "Login";
         loginBtn.classList.remove("logged-in");
         tokenInput.disabled = false;
+        tokenLink.classList.remove("hidden");
+        inputGroup.style.display = "flex";
+        userInfo.classList.add("hidden");
       }
     }
 
@@ -765,6 +781,32 @@ app.registerExtension({
       } catch (error) {
         console.error("Login error:", error);
         status.textContent = `Login error: ${error.message}`;
+      }
+    };
+
+    // Add logout button handler
+    const logoutBtn = panel.querySelector(".logout-btn");
+    logoutBtn.onclick = async () => {
+      const status = panel.querySelector(".download-status");
+      try {
+        status.textContent = "Logging out...";
+        const response = await api.fetchApi("/hal-fun-downloader/logout", {
+          method: "POST",
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Logout failed");
+        }
+
+        updateLoginUI(false);
+        status.textContent = "Successfully logged out";
+
+        // Refresh the model list to update download and license status
+        await loadModels();
+      } catch (error) {
+        console.error("Logout error:", error);
+        status.textContent = `Logout error: ${error.message}`;
       }
     };
 
