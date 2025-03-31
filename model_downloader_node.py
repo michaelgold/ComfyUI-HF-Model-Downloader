@@ -36,6 +36,8 @@ class ModelDownloader:
         self.active_config_path = self.config_dir / "active_config.json"
         self.model_config_path = Path(__file__).parent / "model_config.json"
         self.token_path = self.config_dir / "hf_token.txt"
+        self.license_states = {}  # Store license states for each model
+        self.load_license_states()
         
         # Load or create active configuration
         if self.active_config_path.exists():
@@ -75,10 +77,67 @@ class ModelDownloader:
         try:
             if self.token_path.exists():
                 self.token_path.unlink()
+            self.license_states = {}  # Clear license states on logout
+            self.save_license_states()
             return True
         except Exception as e:
             logger.error(f"Error logging out: {e}")
             return False
+
+    def load_license_states(self):
+        """Load license states from file"""
+        license_states_path = self.config_dir / "license_states.json"
+        if license_states_path.exists():
+            try:
+                with open(license_states_path, "r") as f:
+                    self.license_states = json.load(f)
+            except Exception as e:
+                logger.error(f"Error loading license states: {e}")
+                self.license_states = {}
+
+    def save_license_states(self):
+        """Save license states to file"""
+        license_states_path = self.config_dir / "license_states.json"
+        try:
+            with open(license_states_path, "w") as f:
+                json.dump(self.license_states, f)
+        except Exception as e:
+            logger.error(f"Error saving license states: {e}")
+
+    def update_license_states(self):
+        """Update license states for all gated models"""
+        if not self.is_logged_in():
+            self.license_states = {}
+            self.save_license_states()
+            return
+
+        try:
+            with open(self.model_config_path, "r") as f:
+                config = json.load(f)
+
+            for model in config:
+                if model.get("license", {}).get("required"):
+                    key = f"{model['repo_id']}/{model['filename']}"
+                    try:
+                        # Check if user has accepted the license
+                        hf_hub_download(
+                            repo_id=model["repo_id"],
+                            filename=model["filename"],
+                            token=self.get_token(),
+                            local_dir=os.path.dirname(os.path.join(self.config_dir, model["local_path"])),
+                            force_download=False,
+                            resume_download=False,
+                        )
+                        self.license_states[key] = True
+                    except Exception as e:
+                        if "401" in str(e) or "403" in str(e):
+                            self.license_states[key] = False
+                        else:
+                            logger.error(f"Error checking license for {key}: {e}")
+
+            self.save_license_states()
+        except Exception as e:
+            logger.error(f"Error updating license states: {e}")
 
     @classmethod
     def INPUT_TYPES(s):
@@ -335,6 +394,7 @@ async def login_handler(request):
             login(token=token)
             downloader = get_model_downloader()
             if downloader.save_token(token):
+                downloader.update_license_states()  # Update license states after login
                 return web.json_response({"status": "success", "token": token})
             else:
                 return web.json_response({"error": "Failed to save token"}, status=500)
@@ -350,6 +410,19 @@ async def logout_handler(request):
     logger.info("Logout endpoint called")
     try:
         downloader = get_model_downloader()
+        
+        # Set all license states to false for gated models
+        with open(downloader.model_config_path, 'r') as f:
+            config = json.load(f)
+            for model in config:
+                if model.get("license", {}).get("required"):
+                    key = f"{model['repo_id']}/{model['filename']}"
+                    downloader.license_states[key] = False
+        
+        # Save the updated license states
+        downloader.save_license_states()
+        
+        # Perform the logout
         if downloader.logout():
             return web.json_response({"status": "success"})
         else:
@@ -368,6 +441,55 @@ async def get_login_status(request):
         logger.error(f"Login status handler error: {e}")
         return web.json_response({"error": str(e)}, status=500)
 
+# Add new check-license endpoint
+async def check_license_handler(request):
+    logger.info("Check license endpoint called")
+    try:
+        data = await request.json()
+        repo_id = data.get("repo_id")
+        filename = data.get("filename")
+        
+        if not repo_id or not filename:
+            return web.json_response({"error": "Missing repo_id or filename"}, status=400)
+            
+        downloader = get_model_downloader()
+        
+        # If user is not logged in, always return false for license status
+        if not downloader.is_logged_in():
+            return web.json_response({"accepted": False})
+            
+        key = f"{repo_id}/{filename}"
+        
+        # Check if we have a stored state
+        if key in downloader.license_states:
+            return web.json_response({"accepted": downloader.license_states[key]})
+            
+        # If no stored state, check the license status
+        try:
+            hf_hub_download(
+                repo_id=repo_id,
+                filename=filename,
+                token=downloader.get_token(),
+                local_dir=os.path.dirname(os.path.join(downloader.config_dir, filename)),
+                force_download=False,
+                resume_download=False,
+            )
+            downloader.license_states[key] = True
+            downloader.save_license_states()
+            return web.json_response({"accepted": True})
+        except Exception as e:
+            if "401" in str(e) or "403" in str(e):
+                downloader.license_states[key] = False
+                downloader.save_license_states()
+                return web.json_response({"accepted": False})
+            else:
+                logger.error(f"Error checking license for {key}: {e}")
+                return web.json_response({"error": str(e)}, status=500)
+                
+    except Exception as e:
+        logger.error(f"Check license handler error: {e}")
+        return web.json_response({"error": str(e)}, status=500)
+
 # Register routes when the module is loaded
 logger.info("=== Initializing hal.fun model downloader ===")
 
@@ -380,6 +502,7 @@ def register_routes(server):
     server.routes.post("/hal-fun-downloader/login")(login_handler)
     server.routes.post("/hal-fun-downloader/logout")(logout_handler)
     server.routes.get("/hal-fun-downloader/login-status")(get_login_status)
+    server.routes.post("/hal-fun-downloader/check-license")(check_license_handler)  # Add new route
     logger.info("Routes registered successfully")
 
 # Wait for server to be ready

@@ -221,6 +221,88 @@ style.textContent = `
 .login-section button.logged-in {
     color: var(--success-color);
 }
+
+.license-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 20px;
+    z-index: 1000;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.license-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+.license-dialog h3 {
+    margin: 0 0 16px 0;
+    color: var(--fg-color);
+}
+
+.license-dialog p {
+    margin: 0 0 16px 0;
+    color: var(--fg-color);
+    line-height: 1.5;
+}
+
+.license-dialog .buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.license-dialog button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.license-dialog .cancel-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--fg-color);
+}
+
+.license-dialog .accept-btn {
+    background: var(--accent-color);
+    border: none;
+    color: white;
+}
+
+.model-item .status-icon.gated {
+    color: var(--warning-color);
+}
+
+.model-item .license-info {
+    font-size: 0.8rem;
+    color: var(--warning-color);
+    margin-left: 8px;
+    text-decoration: none;
+}
+
+.model-item .license-info:hover {
+    text-decoration: underline;
+}
+
+.model-item .license-info.granted {
+    color: var(--success-color);
+}
 `;
 
 document.head.appendChild(style);
@@ -264,6 +346,18 @@ app.registerExtension({
                 </div>
                 <menu class="model-list"></menu>
                 <div class="download-status"></div>
+            </div>
+            <div class="license-dialog-overlay" style="display: none;"></div>
+            <div class="license-dialog" style="display: none;">
+                <h3>License Agreement Required</h3>
+                <p>This model requires you to accept the following license agreement:</p>
+                <p class="license-name"></p>
+                <p>Please visit the model page to review and accept the license:</p>
+                <p><a href="#" class="license-url" target="_blank">View License Agreement</a></p>
+                <div class="buttons">
+                    <button class="cancel-btn">Cancel</button>
+                    <button class="accept-btn">I Accept</button>
+                </div>
             </div>
         `;
     document.body.appendChild(panel);
@@ -388,10 +482,11 @@ app.registerExtension({
           }
         };
 
-        config.forEach((model) => {
+        // Create model items asynchronously
+        for (const model of config) {
           if (!model || !model.local_path) {
             console.warn("Invalid model config:", model);
-            return;
+            continue;
           }
 
           const modelName = model.local_path.split("/").pop();
@@ -400,7 +495,6 @@ app.registerExtension({
             activeConfig.enabled_models.includes(modelName);
           const isDownloaded =
             activeConfig.model_status?.[modelName]?.downloaded;
-          const isProtected = model.protected;
 
           const modelItem = document.createElement("li");
           modelItem.className = "model-item";
@@ -412,16 +506,65 @@ app.registerExtension({
                     ${
                       isDownloaded
                         ? '<span class="status-icon downloaded">✓</span>'
-                        : isProtected
-                        ? '<span class="status-icon protected">🔒</span>'
+                        : model.license?.required
+                        ? '<span class="status-icon gated">🔒</span>'
                         : ""
                     }
                     ${modelName}
+                    ${
+                      model.license?.required
+                        ? `<a href="${model.license.url}" target="_blank" class="license-info">(License Required)</a>`
+                        : ""
+                    }
                 </label>
                 <button class="download-btn" ${isDownloaded ? "disabled" : ""}>
                     ${isDownloaded ? "Downloaded" : "Download"}
                 </button>
             `;
+
+          // Check license status for models that require it
+          if (model.license?.required) {
+            const licenseInfo = modelItem.querySelector(".license-info");
+            if (licenseInfo) {
+              try {
+                const response = await api.fetchApi(
+                  "/hal-fun-downloader/check-license",
+                  {
+                    method: "POST",
+                    body: JSON.stringify({
+                      repo_id: model.repo_id,
+                      filename: model.filename,
+                    }),
+                  }
+                );
+
+                if (!response.ok) {
+                  throw new Error(`License check failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.accepted) {
+                  licenseInfo.textContent = "(License Granted)";
+                  licenseInfo.classList.add("granted");
+                } else {
+                  licenseInfo.textContent = "(License Required)";
+                  licenseInfo.classList.remove("granted");
+                }
+              } catch (error) {
+                console.error("License check error:", error);
+                if (
+                  error.message.includes("401") ||
+                  error.message.includes("403")
+                ) {
+                  licenseInfo.textContent = "(Login Required)";
+                  licenseInfo.classList.remove("granted");
+                } else {
+                  licenseInfo.textContent = "(License Required)";
+                  licenseInfo.classList.remove("granted");
+                }
+              }
+            }
+          }
 
           const checkbox = modelItem.querySelector("input");
           checkbox.onchange = async () => {
@@ -455,11 +598,35 @@ app.registerExtension({
           const downloadBtn = modelItem.querySelector(".download-btn");
           downloadBtn.onclick = async () => {
             const status = panel.querySelector(".download-status");
-            if (isProtected) {
-              status.textContent =
-                "This model requires Hugging Face authentication. Please log in first.";
-              return;
+            if (model.license?.required) {
+              try {
+                const response = await api.fetchApi(
+                  "/hal-fun-downloader/check-license",
+                  {
+                    method: "POST",
+                    body: JSON.stringify({
+                      repo_id: model.repo_id,
+                      filename: model.filename,
+                    }),
+                  }
+                );
+
+                if (!response.ok) {
+                  throw new Error(`License check failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (!result.accepted) {
+                  showLicenseDialog(model);
+                  return;
+                }
+              } catch (error) {
+                console.error("License check error:", error);
+                status.textContent = `Error checking license: ${error.message}`;
+                return;
+              }
             }
+
             status.textContent = "Starting download...";
             downloadBtn.disabled = true;
 
@@ -486,7 +653,7 @@ app.registerExtension({
           };
 
           modelList.appendChild(modelItem);
-        });
+        }
       } catch (error) {
         console.error("Error loading models:", error);
         const modelList = panel.querySelector(".model-list");
@@ -562,7 +729,7 @@ app.registerExtension({
           updateLoginUI(false);
           status.textContent = "Successfully logged out";
 
-          // Refresh the model list to update download status
+          // Refresh the model list to update download and license status
           await loadModels();
         } catch (error) {
           console.error("Logout error:", error);
@@ -593,12 +760,76 @@ app.registerExtension({
         updateLoginUI(true);
         status.textContent = "Successfully logged in";
 
-        // Refresh the model list to update download status
+        // Refresh the model list to update download and license status
         await loadModels();
       } catch (error) {
         console.error("Login error:", error);
         status.textContent = `Login error: ${error.message}`;
       }
+    };
+
+    // Add license dialog handling
+    const licenseDialog = panel.querySelector(".license-dialog");
+    const licenseOverlay = panel.querySelector(".license-dialog-overlay");
+    const licenseUrl = panel.querySelector(".license-url");
+    const licenseName = panel.querySelector(".license-name");
+    const cancelBtn = panel.querySelector(".cancel-btn");
+    const acceptBtn = panel.querySelector(".accept-btn");
+
+    function showLicenseDialog(model) {
+      licenseName.textContent = model.license.name;
+      licenseUrl.href = model.license.url;
+      licenseDialog.style.display = "block";
+      licenseOverlay.style.display = "block";
+
+      // Update accept button to check license status
+      acceptBtn.onclick = async () => {
+        try {
+          const status = panel.querySelector(".download-status");
+          status.textContent = "Checking license acceptance...";
+
+          const response = await api.fetchApi(
+            "/hal-fun-downloader/check-license",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                repo_id: model.repo_id,
+                filename: model.filename,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`License check failed: ${response.status}`);
+          }
+
+          const result = await response.json();
+          if (result.accepted) {
+            hideLicenseDialog();
+            // Proceed with download
+            downloadBtn.click();
+          } else {
+            status.textContent =
+              "Please accept the license on Hugging Face first";
+            window.open(licenseUrl.href, "_blank");
+          }
+        } catch (error) {
+          console.error("License check error:", error);
+          status.textContent = `Error checking license: ${error.message}`;
+        }
+      };
+    }
+
+    function hideLicenseDialog() {
+      licenseDialog.style.display = "none";
+      licenseOverlay.style.display = "none";
+    }
+
+    cancelBtn.onclick = hideLicenseDialog;
+    acceptBtn.onclick = () => {
+      hideLicenseDialog();
+      // Open the license URL in a new tab
+      window.open(licenseUrl.href, "_blank");
     };
   },
 });
