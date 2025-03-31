@@ -342,10 +342,12 @@ async def download_model_handler(request):
     try:
         data = await request.json()
         logger.info(f"Received data: {data}")
-        model_name = data.get("model_name")
-        if not model_name:
-            logger.error("No model_name provided in request")
-            return web.json_response({"status": "Error: No model name provided"}, status=400)
+        
+        # Handle both single model and multiple models
+        model_names = data.get("model_names", [data.get("model_name")])
+        if not model_names:
+            logger.error("No model names provided in request")
+            return web.json_response({"status": "Error: No model names provided"}, status=400)
         
         if not downloader.model_config_path.exists():
             logger.error(f"Model config file not found at {downloader.model_config_path}")
@@ -355,25 +357,30 @@ async def download_model_handler(request):
             config = json.load(f)
             logger.info(f"Loaded config: {config}")
         
-        model_found = False
-        for model in config:
-            if model_name in model.get("local_path", ""):
-                model_found = True
-                logger.info(f"Found matching model: {model}")
-                
-                try:
-                    # Run the download directly since we're already in an async context
-                    status = await downloader.download_model(model)
-                    logger.info(f"Download completed with status: {status}")
-                    return web.json_response({"status": status})
-                except Exception as e:
-                    error_msg = f"Error downloading {model_name}: {str(e)}"
-                    logger.error(error_msg, exc_info=True)
-                    return web.json_response({"status": error_msg}, status=500)
+        results = []
+        for model_name in model_names:
+            model_found = False
+            for model in config:
+                if model_name in model.get("local_path", ""):
+                    model_found = True
+                    logger.info(f"Found matching model: {model}")
+                    
+                    try:
+                        # Run the download directly since we're already in an async context
+                        status = await downloader.download_model(model)
+                        logger.info(f"Download completed with status: {status}")
+                        results.append(f"{model_name}: {status}")
+                    except Exception as e:
+                        error_msg = f"Error downloading {model_name}: {str(e)}"
+                        logger.error(error_msg, exc_info=True)
+                        results.append(error_msg)
+            
+            if not model_found:
+                logger.error(f"No matching model found for {model_name}")
+                results.append(f"No matching model found for {model_name}")
         
-        if not model_found:
-            logger.error(f"No matching model found for {model_name}")
-            return web.json_response({"status": f"No matching models found for {model_name}"}, status=404)
+        # Return combined results
+        return web.json_response({"status": "\n".join(results)})
             
     except Exception as e:
         logger.error(f"Error in download endpoint: {str(e)}", exc_info=True)

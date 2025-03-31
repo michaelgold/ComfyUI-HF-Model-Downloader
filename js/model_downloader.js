@@ -462,21 +462,18 @@ app.registerExtension({
           downloadSelectedBtn.disabled = true;
 
           try {
-            for (const modelName of selectedModels) {
-              if (!activeConfig.model_status[modelName]?.downloaded) {
-                status.textContent = `Downloading ${modelName}...`;
-                const response = await api.fetchApi(
-                  "/hal-fun-downloader/download",
-                  {
-                    method: "POST",
-                    body: JSON.stringify({ model_name: modelName }),
-                  }
-                );
-                if (!response.ok)
-                  throw new Error(`Failed to download ${modelName}`);
+            const response = await api.fetchApi(
+              "/hal-fun-downloader/download",
+              {
+                method: "POST",
+                body: JSON.stringify({ model_names: selectedModels }),
               }
+            );
+            if (!response.ok) {
+              throw new Error(`Failed to download models: ${response.status}`);
             }
-            status.textContent = "All selected models downloaded successfully";
+            const result = await response.json();
+            status.textContent = result.status;
             await loadModels(); // Refresh the list
           } catch (error) {
             console.error("Download error:", error);
