@@ -203,6 +203,14 @@ style.textContent = `
     opacity: 0.8;
 }
 
+.login-section .token-note {
+    font-size: 0.8rem;
+    color: var(--fg-color);
+    font-style: italic;
+    text-align: center;
+    margin-top: 4px;
+}
+
 .login-section button {
     background: none;
     color: var(--fg-color);
@@ -337,8 +345,14 @@ app.registerExtension({
                     <div class="input-group">
                         <input type="password" class="hf-token-input" placeholder="Hugging Face Token">
                         <button class="login-btn">Login</button>
+                        
                     </div>
-                    <a href="https://huggingface.co/settings/tokens/new?tokenType=read" target="_blank" class="token-link">Get a read token from Hugging Face</a>
+                    <div class="token-note">
+                        You need a Hugging Face token to download gated models.&nbsp;
+                        <a href="https://huggingface.co/settings/tokens/new?tokenType=read" target="_blank" class="token-link">Get a read token from Hugging Face</a>
+                    </div>
+                    
+                    
                     <div class="user-info hidden">
                         <span class="user-name"></span>
                         <button class="logout-btn">Logout</button>
@@ -699,6 +713,7 @@ app.registerExtension({
       const userInfo = panel.querySelector(".user-info");
       const userName = panel.querySelector(".user-name");
       const logoutBtn = panel.querySelector(".logout-btn");
+      const tokenNote = panel.querySelector(".token-note");
 
       if (isLoggedIn) {
         loginBtn.textContent = "Logged In";
@@ -708,6 +723,7 @@ app.registerExtension({
         tokenLink.classList.add("hidden");
         inputGroup.style.display = "none";
         userInfo.classList.remove("hidden");
+        tokenNote.classList.add("hidden");
         userName.textContent = "Logged in to Hugging Face";
       } else {
         loginBtn.textContent = "Login";
@@ -716,6 +732,7 @@ app.registerExtension({
         tokenLink.classList.remove("hidden");
         inputGroup.style.display = "flex";
         userInfo.classList.add("hidden");
+        tokenNote.classList.remove("hidden");
       }
     }
 
@@ -754,7 +771,7 @@ app.registerExtension({
       // Handle login
       if (!token) {
         status.textContent =
-          "Please create a new read token at https://huggingface.co/settings/tokens/new?tokenType=read";
+          "Please create a new read token at https://huggingface.co/settings/tokens/new?tokenType=read (required for gated models)";
         return;
       }
 
