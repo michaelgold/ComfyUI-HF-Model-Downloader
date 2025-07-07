@@ -82,10 +82,24 @@
     "protected": false
   },
   {
-    "repo_id": "Kijai/WanVideo_comfy",
+    "repo_id": "Comfy-Org/Lumina_Image_2.0_Repackaged",
+    "subfolder": "split_files/vae",
+    "filename": "ae.safetensors",
+    "local_path": "vae/ae.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "comfyanonymous/flux_text_encoders",
     "subfolder": "",
-    "filename": "Wan2_1_VACE_1_3B_preview_bf16.safetensors",
-    "local_path": "diffusion_models/WanVideo/Wan2_1_VACE_1_3B_preview_bf16.safetensors",
+    "filename": "t5xxl_fp8_e4m3fn_scaled.safetensors",
+    "local_path": "text_encoders/t5/t5xxl_fp8_e4m3fn_scaled.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "Comfy-Org/flux1-kontext-dev_ComfyUI",
+    "subfolder": "split_files/diffusion_models",
+    "filename": "flux1-dev-kontext_fp8_scaled.safetensors",
+    "local_path": "diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors",
     "protected": false
   }
 ]
