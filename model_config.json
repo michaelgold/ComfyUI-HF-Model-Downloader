@@ -101,5 +101,40 @@
     "filename": "flux1-dev-kontext_fp8_scaled.safetensors",
     "local_path": "diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors",
     "protected": false
+  },
+  {
+    "repo_id": "Comfy-Org/Wan_2.2_ComfyUI_Repackaged",
+    "subfolder": "split_files/diffusion_models",
+    "filename": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+    "local_path": "diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "Comfy-Org/Wan_2.2_ComfyUI_Repackaged",
+    "subfolder": "split_files/diffusion_models",
+    "filename": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+    "local_path": "diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "Comfy-Org/Wan_2.2_ComfyUI_Repackaged",
+    "subfolder": "split_files/vae",
+    "filename": "wan_2.1_vae.safetensors",
+    "local_path": "vae/wan_2.1_vae.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "Comfy-Org/Wan_2.2_ComfyUI_Repackaged",
+    "subfolder": "split_files/vae",
+    "filename": "wan2.2_vae.safetensors",
+    "local_path": "vae/wan2.2_vae.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "Comfy-Org/Wan_2.2_ComfyUI_Repackaged",
+    "subfolder": "split_files/text_encoders",
+    "filename": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "local_path": "text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "protected": false
   }
 ]
