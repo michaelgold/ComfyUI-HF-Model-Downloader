@@ -150,5 +150,41 @@
     "filename": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
     "local_path": "text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
     "protected": false
+  },
+  {
+    "repo_id": "Comfy-Org/Qwen-Image_ComfyUI",
+    "subfolder": "split_files/vae",
+    "filename": "qwen_image_vae.safetensors",
+    "local_path": "vae/qwen_image_vae.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "Comfy-Org/Qwen-Image_ComfyUI",
+    "subfolder": "split_files/text_encoders",
+    "filename": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+    "local_path": "text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "lightx2v/Qwen-Image-Lightning",
+    "subfolder": "",
+    "filename": "Qwen-Image-Lightning-8steps-V1.0.safetensors",
+    "local_path": "loras/Qwen-Image-Lightning-8steps-V1.0.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "Comfy-Org/Qwen-Image_ComfyUI",
+    "subfolder": "split_files/diffusion_models",
+    "filename": "qwen_image_fp8_e4m3fn.safetensors",
+    "local_path": "diffusion_models/qwen_image_fp8_e4m3fn.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "Comfy-Org/Qwen-Image-Edit_ComfyUI",
+    "subfolder": "split_files/diffusion_models",
+    "filename": "qwen_image_edit_fp8_e4m3fn.safetensors",
+    "local_path": "diffusion_models/qwen_image_edit_fp8_e4m3fn.safetensors",
+    "protected": false
   }
+
 ]
