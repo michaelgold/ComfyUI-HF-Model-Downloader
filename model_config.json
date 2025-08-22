@@ -185,6 +185,13 @@
     "filename": "qwen_image_edit_fp8_e4m3fn.safetensors",
     "local_path": "diffusion_models/qwen_image_edit_fp8_e4m3fn.safetensors",
     "protected": false
+  },
+  {
+    "repo_id": "lightx2v/Qwen-Image-Lightning",
+    "subfolder": "",
+    "filename": "Qwen-Image-Lightning-4steps-V1.0.safetensors",
+    "local_path": "loras/Qwen-Image-Lightning-4steps-V1.0.safetensors",
+    "protected": false
   }
 
 ]
