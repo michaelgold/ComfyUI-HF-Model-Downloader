@@ -187,6 +187,13 @@
     "protected": false
   },
   {
+    "repo_id": "Comfy-Org/Qwen-Image-Edit_ComfyUI",
+    "subfolder": "split_files/diffusion_models",
+    "filename": "qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+    "local_path": "diffusion_models/qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+    "protected": false
+  },
+  {
     "repo_id": "lightx2v/Qwen-Image-Lightning",
     "subfolder": "",
     "filename": "Qwen-Image-Lightning-4steps-V1.0.safetensors",
