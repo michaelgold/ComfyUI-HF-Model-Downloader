@@ -172,25 +172,27 @@
     "local_path": "loras/Qwen-Image-Lightning-8steps-V1.0.safetensors",
     "protected": false
   },
+
   {
     "repo_id": "Comfy-Org/Qwen-Image_ComfyUI",
     "subfolder": "split_files/diffusion_models",
-    "filename": "qwen_image_fp8_e4m3fn.safetensors",
-    "local_path": "diffusion_models/qwen_image_fp8_e4m3fn.safetensors",
+    "filename": "qwen_image_2512_fp8_e4m3fn.safetensors",
+    "local_path": "diffusion_models/qwen_image_2512_fp8_e4m3fn.safetensors",
     "protected": false
   },
   {
     "repo_id": "Comfy-Org/Qwen-Image-Edit_ComfyUI",
     "subfolder": "split_files/diffusion_models",
-    "filename": "qwen_image_edit_fp8_e4m3fn.safetensors",
-    "local_path": "diffusion_models/qwen_image_edit_fp8_e4m3fn.safetensors",
+    "filename": "qwen_image_edit_2511_bf16.safetensors",
+    "local_path": "diffusion_models/qwen_image_edit_2511_bf16.safetensors",
     "protected": false
   },
+
   {
-    "repo_id": "Comfy-Org/Qwen-Image-Edit_ComfyUI",
-    "subfolder": "split_files/diffusion_models",
-    "filename": "qwen_image_edit_2509_fp8_e4m3fn.safetensors",
-    "local_path": "diffusion_models/qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+    "repo_id": "lightx2v/Qwen-Image-Edit-2511-Lightning",
+    "subfolder": "",
+    "filename": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+    "local_path": "loras/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
     "protected": false
   },
   {
