@@ -176,15 +176,20 @@ app.registerExtension({
       return container;
     };
 
-    // Register the panel with ComfyUI's panel system
-    app.ui.registerPanel?.({
-      id: panelId,
-      title: "Model Downloader",
-      icon: "download",
-      location: "right",
-      size: { width: 400 },
-      render: createPanelContent
-    });
+    // Create the panel once
+    const panel = createPanelContent();
+    panel.style.display = "none";
+    panel.style.position = "fixed";
+    panel.style.top = "60px";
+    panel.style.right = "10px";
+    panel.style.width = "400px";
+    panel.style.maxHeight = "80vh";
+    panel.style.background = "var(--comfy-menu-bg)";
+    panel.style.border = "1px solid var(--border-color)";
+    panel.style.borderRadius = "8px";
+    panel.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)";
+    panel.style.zIndex = "1000";
+    document.body.appendChild(panel);
 
     // Add button to the menu using the new ComfyUI button API
     try {
@@ -194,20 +199,7 @@ app.registerExtension({
       const modelDownloaderButton = new ComfyButton({
         icon: "download",
         action: () => {
-          // Toggle the panel visibility
-          if (app.ui.registerPanel) {
-            // If using new panel system, try to open/focus the panel
-            const panel = document.querySelector(`[data-panel-id="${panelId}"]`);
-            if (panel) {
-              panel.click();
-            }
-          } else {
-            // Fallback to legacy behavior
-            const panel = document.querySelector(".hal-fun-downloader-container")?.parentElement;
-            if (panel) {
-              panel.style.display = panel.style.display === "none" ? "flex" : "none";
-            }
-          }
+          panel.style.display = panel.style.display === "none" ? "flex" : "none";
         },
         tooltip: "Model Downloader - Download and manage Hugging Face models",
         content: "Models",
@@ -219,19 +211,20 @@ app.registerExtension({
         const buttonGroup = new ComfyButtonGroup(modelDownloaderButton.element);
         app.menu.settingsGroup.element.before(buttonGroup.element);
         console.log('Model Downloader button added to menu');
+        
+        // Close panel when clicking outside
+        document.addEventListener("click", (e) => {
+          if (!panel.contains(e.target) && !modelDownloaderButton.element.contains(e.target) && panel.style.display === "flex") {
+            panel.style.display = "none";
+          }
+        });
       } else {
-        console.warn('app.menu.settingsGroup not found');
+        console.warn('app.menu.settingsGroup not found, using legacy button');
+        createLegacyMenuButton(panel);
       }
     } catch (exception) {
       console.error('Error creating Model Downloader button:', exception);
-      // Fallback to legacy menu button
-      createLegacyMenuButton(createPanelContent);
-    }
-
-    // Fallback for older ComfyUI versions without panel API
-    if (!app.ui.registerPanel) {
-      console.warn("Panel API not available, creating menu button fallback");
-      createLegacyMenuButton(createPanelContent);
+      createLegacyMenuButton(panel);
     }
   }
 });
@@ -503,7 +496,7 @@ async function loadModels(container) {
 }
 
 // Legacy fallback for older ComfyUI versions
-function createLegacyMenuButton(createPanelContent) {
+function createLegacyMenuButton(panel) {
   const menuRight = document.querySelector(".comfyui-menu-right .comfyui-button-group");
   if (!menuRight) return;
 
@@ -511,21 +504,6 @@ function createLegacyMenuButton(createPanelContent) {
   button.className = "comfyui-button";
   button.title = "Model Downloader";
   button.innerHTML = '<i class="mdi mdi-download"></i><span>Models</span>';
-
-  const panel = createPanelContent();
-  panel.style.display = "none";
-  panel.style.position = "fixed";
-  panel.style.top = "60px";
-  panel.style.right = "10px";
-  panel.style.width = "400px";
-  panel.style.maxHeight = "80vh";
-  panel.style.background = "var(--comfy-menu-bg)";
-  panel.style.border = "1px solid var(--border-color)";
-  panel.style.borderRadius = "8px";
-  panel.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)";
-  panel.style.zIndex = "1000";
-
-  document.body.appendChild(panel);
 
   button.onclick = () => {
     panel.style.display = panel.style.display === "none" ? "flex" : "none";
