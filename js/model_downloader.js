@@ -182,7 +182,7 @@ app.registerExtension({
     panel.style.position = "fixed";
     panel.style.top = "60px";
     panel.style.right = "10px";
-    panel.style.width = "400px";
+    panel.style.width = "700px";
     panel.style.maxHeight = "80vh";
     panel.style.background = "var(--comfy-menu-bg)";
     panel.style.border = "1px solid var(--border-color)";
