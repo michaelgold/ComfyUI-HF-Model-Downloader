@@ -187,7 +187,20 @@
     "local_path": "diffusion_models/qwen_image_edit_2511_bf16.safetensors",
     "protected": false
   },
-
+  {
+    "repo_id": "Comfy-Org/Qwen-Image-Edit_ComfyUI",
+    "subfolder": "split_files/diffusion_models",
+    "filename": "qwen_image_edit_2511_fp8mixed.safetensors",
+    "local_path": "diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "QuantStack/Qwen-Image-Edit-GGUF",
+    "subfolder": "",
+    "filename": "Qwen_Image_Edit-Q6_K.gguf",
+    "local_path": "diffusion_models/Qwen_Image_Edit-Q6_K.gguf",
+    "protected": false
+  },
   {
     "repo_id": "lightx2v/Qwen-Image-Edit-2511-Lightning",
     "subfolder": "",
