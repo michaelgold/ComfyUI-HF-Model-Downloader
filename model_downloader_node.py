@@ -1,6 +1,6 @@
 import json
 import os
-from huggingface_hub import hf_hub_download, login
+from huggingface_hub import hf_hub_download, login, snapshot_download
 from server import PromptServer
 import aiohttp
 import asyncio
@@ -155,8 +155,8 @@ class ModelDownloader:
 
     async def download_model(self, model_config):
         repo_id = model_config['repo_id']
-        subfolder = model_config['subfolder']
-        filename = model_config['filename']
+        subfolder = model_config.get('subfolder', '')
+        filename = model_config.get('filename')  # May be None for full repo downloads
         local_path = model_config['local_path']
         base_model_path = model_config.get('base_model_path', os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'models'))
         
@@ -164,40 +164,67 @@ class ModelDownloader:
         if not os.path.isabs(local_path):
             local_path = os.path.join(base_model_path, local_path)
         
-        if os.path.exists(local_path):
-            return f"File already exists at {local_path}"
+        # Check if the model is protected (gated)
+        is_protected = model_config.get('protected', False) or model_config.get('license', {}).get('required', False)
         
-        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        # Get the token if we're logged in and the model is protected
+        token = None
+        if is_protected:
+            token = self.get_token()
+            if not token:
+                return f"Error: Not logged in. Please log in first to download protected models."
         
         try:
-            # Check if the model is protected (gated)
-            is_protected = model_config.get('protected', False) or model_config.get('license', {}).get('required', False)
-            
-            # Get the token if we're logged in and the model is protected
-            token = None
-            if is_protected:
-                token = self.get_token()
-                if not token:
-                    return f"Error: Not logged in. Please log in first to download protected models."
-            
-            # Use asyncio.to_thread to run the blocking hf_hub_download in a separate thread
-            logger.info(f"Starting download of {filename} from {repo_id}")
-            await asyncio.to_thread(
-                hf_hub_download,
-                repo_id=repo_id,
-                subfolder=subfolder,
-                filename=filename,
-                local_dir=os.path.dirname(local_path),
-                token=token
-            )
-            
-            downloaded_path = os.path.join(os.path.dirname(local_path), subfolder, filename)
-            if downloaded_path != local_path:
-                os.rename(downloaded_path, local_path)
+            # Detect download mode: full repository or single file
+            if not filename:
+                # Full repository download mode
+                logger.info(f"Starting full repository download of {repo_id} to {local_path}")
                 
-            return f"Successfully downloaded {filename} to {local_path}"
+                # Strip trailing slash for existence check
+                check_path = local_path.rstrip('/')
+                if os.path.isdir(check_path):
+                    return f"Repository already exists at {local_path}"
+                
+                # Create parent directory
+                os.makedirs(local_path, exist_ok=True)
+                
+                # Use asyncio.to_thread to run the blocking snapshot_download in a separate thread
+                await asyncio.to_thread(
+                    snapshot_download,
+                    repo_id=repo_id,
+                    local_dir=local_path,
+                    local_dir_use_symlinks=False,
+                    token=token
+                )
+                
+                return f"Successfully downloaded repository {repo_id} to {local_path}"
+            else:
+                # Single file download mode (original behavior)
+                logger.info(f"Starting single file download of {filename} from {repo_id}")
+                
+                if os.path.exists(local_path):
+                    return f"File already exists at {local_path}"
+                
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                
+                # Use asyncio.to_thread to run the blocking hf_hub_download in a separate thread
+                await asyncio.to_thread(
+                    hf_hub_download,
+                    repo_id=repo_id,
+                    subfolder=subfolder,
+                    filename=filename,
+                    local_dir=os.path.dirname(local_path),
+                    token=token
+                )
+                
+                downloaded_path = os.path.join(os.path.dirname(local_path), subfolder, filename)
+                if downloaded_path != local_path:
+                    os.rename(downloaded_path, local_path)
+                    
+                return f"Successfully downloaded {filename} to {local_path}"
         except Exception as e:
-            return f"Error downloading {filename}: {str(e)}"
+            error_detail = filename if filename else f"repository {repo_id}"
+            return f"Error downloading {error_detail}: {str(e)}"
 
     def execute(self, action, model_name):
         if action == "check_downloads":
@@ -210,10 +237,27 @@ class ModelDownloader:
             status = []
             for model in config:
                 if model_name in model.get("local_path", ""):
-                    if os.path.exists(model["local_path"]):
-                        status.append(f"✓ {model_name} is downloaded")
+                    local_path = model["local_path"]
+                    base_model_path = model.get('base_model_path', os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'models'))
+                    
+                    # Prepend base_model_path if not absolute
+                    if not os.path.isabs(local_path):
+                        local_path = os.path.join(base_model_path, local_path)
+                    
+                    # Check if it's a repo download (no filename) or single file
+                    if 'filename' not in model or not model.get('filename'):
+                        # Full repo: check if directory exists
+                        check_path = local_path.rstrip('/')
+                        if os.path.isdir(check_path):
+                            status.append(f"✓ {model_name} is downloaded (repository)")
+                        else:
+                            status.append(f"✗ {model_name} is not downloaded (repository)")
                     else:
-                        status.append(f"✗ {model_name} is not downloaded")
+                        # Single file: check if file exists
+                        if os.path.exists(local_path):
+                            status.append(f"✓ {model_name} is downloaded")
+                        else:
+                            status.append(f"✗ {model_name} is not downloaded")
             
             return ("\n".join(status) if status else f"No matching models found for {model_name}",)
         
@@ -310,7 +354,7 @@ async def get_active_config(request):
     # Add download status for each model
     model_status = {}
     for model in config:
-        model_name = os.path.basename(model.get("local_path", ""))
+        model_name = os.path.basename(model.get("local_path", "").rstrip('/'))
         if model_name:
             # Get the full path for the model
             local_path = model.get("local_path", "")
@@ -320,9 +364,19 @@ async def get_active_config(request):
             if not os.path.isabs(local_path):
                 local_path = os.path.join(base_model_path, local_path)
             
-            logger.info(f"Checking model {model_name} at path: {local_path}")
+            # Check if it's a repo download (no filename) or single file
+            if 'filename' not in model or not model.get('filename'):
+                # Full repo: check if directory exists
+                check_path = local_path.rstrip('/')
+                downloaded = os.path.isdir(check_path)
+                logger.info(f"Checking repository {model_name} at path: {local_path} - {'exists' if downloaded else 'not found'}")
+            else:
+                # Single file: check if file exists
+                downloaded = os.path.exists(local_path)
+                logger.info(f"Checking model file {model_name} at path: {local_path} - {'exists' if downloaded else 'not found'}")
+            
             model_status[model_name] = {
-                "downloaded": os.path.exists(local_path),
+                "downloaded": downloaded,
                 "path": local_path
             }
     
