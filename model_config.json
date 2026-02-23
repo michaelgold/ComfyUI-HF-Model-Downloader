@@ -235,6 +235,11 @@
     "filename": "Wan2_2-Animate-14B_fp8_e4m3fn_scaled_KJ.safetensors",
     "local_path": "diffusion_models/Wan2_2-Animate-14B_fp8_e4m3fn_scaled_KJ.safetensors",
     "protected": false
+  },
+  {
+    "repo_id": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "subfolder": "",
+    "local_path": "facebook/dinov3-vitl16-pretrain-lvd1689m/",
+    "protected": true
   }
-
 ]

@@ -401,7 +401,16 @@ async function loadModels(container) {
     for (const model of config) {
       if (!model || !model.local_path) continue;
 
-      const modelName = model.local_path.split("/").pop();
+      // Determine display name: use filename if present, otherwise use repo name
+      let modelName;
+      if (model.filename) {
+        // Single file download: use filename
+        modelName = model.filename;
+      } else {
+        // Full repo download: use repo name (last part of repo_id)
+        modelName = model.repo_id.split("/").pop();
+      }
+      
       const isEnabled = activeConfig?.enabled_models?.includes(modelName);
       const isDownloaded = activeConfig.model_status?.[modelName]?.downloaded;
 
