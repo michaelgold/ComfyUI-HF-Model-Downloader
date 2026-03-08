@@ -241,5 +241,33 @@
     "subfolder": "",
     "local_path": "facebook/dinov3-vitl16-pretrain-lvd1689m/",
     "protected": true
+  },
+  {
+    "repo_id": "Lightricks/LTX-2.3",
+    "subfolder": "",
+    "filename": "ltx-2.3-spatial-upscaler-x2-1.0.safetensors",
+    "local_path": "latent_upscale_models/ltx-2.3-spatial-upscaler-x2-1.0.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "Lightricks/LTX-2.3",
+    "subfolder": "",
+    "filename": "ltx-2.3-22b-dev.safetensors",
+    "local_path": "checkpoints/ltx-2.3-22b-dev.safetensors",
+    "protected": false
+  },
+  {
+    "repo_id": "Lightricks/LTX-2.3",
+    "subfolder": "",
+    "filename": "ltx-2.3-22b-distilled-lora-384.safetensors",
+    "local_path": "loras/ltx-2.3-22b-distilled-lora-384.safetensors",
+    "protected": false
+  },
+  { 
+    "repo_id": "Comfy-Org/ltx-2",
+    "subfolder": "split_files/text_encoders",
+    "filename": "gemma_3_12B_it_fp4_mixed.safetensors",
+    "local_path": "text_encoders/gemma_3_12B_it_fp4_mixed.safetensors",
+    "protected": false
   }
 ]
